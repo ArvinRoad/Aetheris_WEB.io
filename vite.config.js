@@ -5,7 +5,7 @@ import { fileURLToPath, URL } from 'node:url';
 export default defineConfig({
 
     base: '/Aetheris_WEB.io/',
-
+    
     plugins: [vue()],
     resolve: {
         alias: {

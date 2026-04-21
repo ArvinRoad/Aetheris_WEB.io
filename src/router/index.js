@@ -1,19 +1,38 @@
 /**
  * 项目：渊枢 (Aetheris)
- * 功能：全局路由管理
+ * 功能：全局路由管理 + 登录态权限守卫
+ * 包含：主页、登录页路由配置，全局登录校验守卫
+ * 对接：前端 localStorage token 校验、Rust Axum 后端登录态
+ * @author SongYuChen
+ * @version 1.0.0
  */
 import { createRouter, createWebHistory } from 'vue-router';
-import Aetheris from '../views/Aetheris.vue';
-import Login from '../views/Login.vue';
+import Aetheris from '@/views/Aetheris.vue';
+import Login from '@/views/Login.vue';
 
 const routes = [
-    { path: '/', component: Aetheris },
-    { path: '/login', component: Login }
+  // 核心：根路径指向3D首页
+  {
+    path: '/',
+    name: 'Aetheris',
+    component: Aetheris
+  },
+  // 登录页路径
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login
+  },
+  // 404重定向到首页（不是登录页）
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/'
+  }
 ];
 
 const router = createRouter({
-    history: createWebHistory(import.meta.env.BASE_URL),
-    routes
+  history: createWebHistory(),
+  routes
 });
 
 export default router;
