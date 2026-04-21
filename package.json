@@ -4,6 +4,7 @@
   "type": "module",
   "description": "渊枢 (Aetheris)",
   "scripts": {
+    "deploy": "gh-pages -d dist",
     "dev": "vite --force --mode development",
     "build": "vite build --mode production",
     "preview": "vite preview"
