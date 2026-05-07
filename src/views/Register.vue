@@ -1,8 +1,8 @@
 /**
  * 项目: 渊枢 (Aetheris)
- * 功能: 登录页
- * 包含: 账号密码登录、表单校验、注册跳转、登录态存储、弹窗提示
- * 对接: Rust Axum 后端 /login 接口
+ * 功能: 注册页
+ * 包含: 账号邮箱密码注册、表单校验、登录跳转、注册态存储、弹窗提示
+ * 对接: Rust Axum 后端 /api/auth/register 接口
  * @author SongYuChen
  * @version 1.0.0
  */
@@ -15,13 +15,15 @@
                 <!-- 动态六边形品牌图标（带旋转动画） -->
                 <div class="metatron-icon"></div>
                 <h1 class="login-title">渊枢 · Aetheris</h1>
-                <p class="login-subtitle">Enter the Aether Realm</p>
+                <p class="login-subtitle">创建以太账号</p>
 
-                <!-- 登录错误提示框 -->
+                <!-- 注册错误提示框 -->
                 <div class="error-tip" v-if="errorMsg">{{ errorMsg }}</div>
+                <!-- 注册成功提示框 -->
+                <div class="success-tip" v-if="successMsg">{{ successMsg }}</div>
 
-                <!-- 登录表单：提交时触发handleLogin，阻止默认提交行为 -->
-                <form class="login-form" @submit.prevent="handleLogin">
+                <!-- 注册表单：提交时触发handleRegister，阻止默认提交行为 -->
+                <form class="login-form" @submit.prevent="handleRegister">
                     <div class="form-item">
                         <label class="form-label">账号</label>
                         <input 
@@ -35,6 +37,18 @@
                         />
                     </div>
                     <div class="form-item">
+                        <label class="form-label">邮箱</label>
+                        <input 
+                            type="email" 
+                            class="login-input" 
+                            placeholder="请输入邮箱" 
+                            v-model="email"
+                            :disabled="isLoading"
+                            @input="clearError"
+                            @blur="checkEmailOnBlur"
+                        />
+                    </div>
+                    <div class="form-item">
                         <label class="form-label">密码</label>
                         <input 
                             type="password" 
@@ -43,24 +57,25 @@
                             v-model="password"
                             :disabled="isLoading"
                             @input="clearError"
+                            @blur="checkPasswordOnBlur"
                         />
                     </div>
                     
-                    <!-- 登录按钮：加载中/空值时禁用 -->
+                    <!-- 注册按钮：加载中/空值时禁用 -->
                     <button 
                         type="submit" 
                         class="login-btn"
-                        :disabled="isLoading || !username || !password"
+                        :disabled="isLoading || !username || !email || !password"
                     >
-                        <span v-if="!isLoading">登录</span>
-                        <span v-else class="loading">接入中...</span>
+                        <span v-if="!isLoading">注册</span>
+                        <span v-else class="loading">创建中...</span>
                     </button>
                 </form>
 
-                <!-- 注册跳转链接 -->
+                <!-- 登录跳转链接 -->
                 <div class="login-footer">
-                    <span>还没有账号？</span>
-                    <a href="javascript:;" class="footer-link" @click="goRegister">创建以太账号</a>
+                    <span>已有账号？</span>
+                    <a href="javascript:;" class="footer-link" @click="goLogin">立即登录</a>
                 </div>
             </div>
         </div>
@@ -71,18 +86,21 @@
     // 导入Vue核心API
     import { ref, onMounted, onUnmounted, onErrorCaptured } from 'vue';
     import { useRouter } from 'vue-router';
+
+    // 导入注册接口（Vite 环境专用）
     import * as authModule from '@/api/auth';
-    
     // 异常处理：接口不存在时使用空实现，防止组件崩溃
-    const loginApi = authModule.loginApi || (() => Promise.reject({ msg: '登录接口模块未配置' }));
+    const registerApi = authModule.registerApi || (() => Promise.reject({ msg: '注册接口模块未配置' }));
 
     // 响应式数据定义
     const router = useRouter();           // 路由实例
-    const loginContainerRef = ref(null);  // 登录容器DOM引用
+    const loginContainerRef = ref(null);  // 注册容器DOM引用
     const username = ref('');             // 账号输入值
+    const email = ref('');                // 邮箱输入值
     const password = ref('');             // 密码输入值
-    const isLoading = ref(false);         // 登录请求加载状态
+    const isLoading = ref(false);         // 注册请求加载状态
     const errorMsg = ref('');             // 错误提示信息
+    const successMsg = ref('');           // 成功提示信息
 
     /**
      * 全局错误捕获：过滤组件内常见错误，避免控制台爆红
@@ -107,35 +125,61 @@
      */
     const clearError = () => {
         if (errorMsg.value) errorMsg.value = '';
+        if (successMsg.value) successMsg.value = '';
     };
 
-    // 输入框失去焦点时校验邮箱
+    // 三个输入框的失焦校验逻辑
     const checkUsernameOnBlur = () => {
-        const account = username.value?.trim();
-        if (account && account.includes('@')) {
-            errorMsg.value = '请使用用户名登录，请勿使用邮箱';
+        const val = username.value?.trim();
+        if (!val) {
+            errorMsg.value = '请输入账号';
+        }
+    };
+
+    const checkEmailOnBlur = () => {
+        const val = email.value?.trim();
+        if (!val) {
+            errorMsg.value = '请输入邮箱';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+            errorMsg.value = '请输入有效的邮箱地址';
+        }
+    };
+
+    const checkPasswordOnBlur = () => {
+        const val = password.value?.trim();
+        if (!val) {
+            errorMsg.value = '请输入密码';
+        } else if (val.length < 6) {
+            errorMsg.value = '密码长度不能少于6位';
         }
     };
 
     /**
-     * 登录核心逻辑：表单校验 → 接口调用 → 结果处理
+     * 注册核心逻辑：兼容所有后端响应格式
      * 全量异常捕获，确保任何错误都不会导致页面崩溃
      */
-    const handleLogin = async () => {
-        // 1. 表单空值校验
+    const handleRegister = async () => {
+        // 表单空值校验
         if (!username.value?.trim()) {
             errorMsg.value = '请输入账号';
+            return;
+        }
+        if (!email.value?.trim()) {
+            errorMsg.value = '请输入邮箱';
+            return;
+        }
+        // 提交时邮箱格式校验
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) {
+            errorMsg.value = '请输入有效的邮箱地址';
             return;
         }
         if (!password.value?.trim()) {
             errorMsg.value = '请输入密码';
             return;
         }
-
-        // 拦截邮箱，提示使用用户名登录
-        const account = username.value.trim();
-        if (account.includes('@')) {
-            errorMsg.value = '请使用用户名登录，请勿使用邮箱';
+        // 提交时密码长度校验
+        if (password.value.trim().length < 6) {
+            errorMsg.value = '密码长度不能少于6位';
             return;
         }
 
@@ -143,39 +187,47 @@
             isLoading.value = true;
             clearError(); // 清空历史错误提示
 
-            // 2. 调用后端登录接口
-            const res = await loginApi({
+            // 调用后端注册接口
+            await registerApi({
                 username: username.value.trim(),
+                email: email.value.trim(),
                 password: password.value.trim()
             });
 
-            if (res && res.data && res.data.code === 200) {
-                // 登录成功：存储Token + 跳转到首页
-                const token = res.data.data?.token || '';
-                if (token) localStorage.setItem('token', token);
-                
-                // 路由跳转异常捕获，避免跳转失败导致流程中断
-                await router.push('/').catch(err => {
-                    console.warn('首页跳转失败：', err);
-                    errorMsg.value = '登录成功，但页面跳转失败，请手动刷新';
+            // 只要走到这里，就说明注册成功（数据已写入数据库）
+            successMsg.value = '注册成功！正在跳转到登录页...';
+            setTimeout(async () => {
+                await router.push('/login').catch(err => {
+                    console.warn('登录页跳转失败：', err);
+                    errorMsg.value = '注册成功，但页面跳转失败，请手动刷新';
                 });
-            } else {
-                // 登录失败：显示后端返回的错误信息
-                errorMsg.value = res?.data?.message || '登录失败，请检查账号密码';
-            }
+            }, 1500);
+
         } catch (err) {
-            console.error('登录接口调用异常：', err);
-            if (err.response?.status === 401) {
-                errorMsg.value = '账号或密码错误，请重新输入';
+            console.error('注册接口调用异常：', err);
+            // 如果是400状态码，说明是业务错误（用户名/邮箱已存在）
+            if (err.response?.status === 400) {
+                errorMsg.value = '注册失败：用户名或邮箱已存在';
             } 
+            // 如果是200状态码但被拦截器抛出错误，说明是业务code不匹配，实际注册成功
+            else if (err.response?.status === 200) {
+                successMsg.value = '注册成功！正在跳转到登录页...';
+                setTimeout(async () => {
+                    await router.push('/login').catch(err => {
+                        console.warn('登录页跳转失败：', err);
+                        errorMsg.value = '注册成功，但页面跳转失败，请手动刷新';
+                    });
+                }, 1500);
+            }
+            // 其他网络错误
             else if (err.message?.includes('ERR_CONNECTION_REFUSED')) {
                 errorMsg.value = '后端服务未启动，请先运行Rust Axum服务（端口8080）';
             } else if (err.message?.includes('Network Error')) {
                 errorMsg.value = '网络连接异常，请检查网络或后端服务状态';
-            } else if (err.message?.includes('loginApi is not a function')) {
-                errorMsg.value = '登录接口未正确配置，请检查/api/auth文件';
+            } else if (err.message?.includes('registerApi is not a function')) {
+                errorMsg.value = '注册接口未正确配置，请检查/api/auth文件';
             } else {
-                errorMsg.value = '登录失败：账号或密码不正确';
+                errorMsg.value = `注册失败：${err.message || '未知错误'}`;
             }
         } finally {
             // 无论成功/失败，都重置加载状态 + 清空密码
@@ -185,13 +237,13 @@
     };
 
     /**
-     *  注册跳转逻辑：跳转到注册页
+     * 登录跳转逻辑：跳转到登录页
      */
-    const goRegister = () => {
+    const goLogin = () => {
         try {
-            router.push('/register'); // 【修改】从弹窗改成路由跳转
+            router.push('/login');
         } catch (err) {
-            console.warn('注册页跳转失败：', err);
+            console.warn('登录页跳转失败：', err);
         }
     };
 
@@ -223,8 +275,10 @@
         try {
             // 清空敏感数据
             username.value = '';
+            email.value = '';
             password.value = '';
             errorMsg.value = '';
+            successMsg.value = '';
 
             // 恢复页面滚动
             if (document?.body) {
@@ -252,7 +306,7 @@
     });
 
     /**
-     * 移动端触摸滚动阻止：防止登录页在移动端上下滑动
+     * 移动端触摸滚动阻止：防止注册页在移动端上下滑动
      * 异常捕获：部分浏览器阻止默认行为会报错，静默处理
      * @param {Event} e - 触摸事件对象
      */
@@ -291,7 +345,7 @@
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
 
-    /* 登录容器：居中展示登录面板，背景渐变效果 */
+    /* 注册容器：居中展示注册面板，背景渐变效果 */
     .login-container {
         width: 100% !important;
         height: 100% !important;
@@ -310,7 +364,7 @@
         -webkit-user-select: none !important;
     }
 
-    /* 登录背景渐变：双层径向渐变，增强视觉层次 */
+    /* 注册背景渐变：双层径向渐变，增强视觉层次 */
     .login-bg {
         position: absolute;
         top: 0;
@@ -321,7 +375,7 @@
         z-index: 1;
     }
 
-    /* 登录面板：半透明磨砂玻璃效果，自适应宽度 */
+    /* 注册面板：半透明磨砂玻璃效果，自适应宽度 */
     .login-panel {
         width: 90% !important;
         max-width: 380px;
@@ -349,7 +403,7 @@
         animation: rotate 15s linear infinite; /* 匀速旋转动画 */
     }
 
-    /* 登录标题样式 */
+    /* 注册标题样式 */
     .login-title {
         color: #E2E2F8;
         font-size: 24px;
@@ -359,7 +413,7 @@
         margin-top: 0;
     }
 
-    /* 登录副标题样式 */
+    /* 注册副标题样式 */
     .login-subtitle {
         color: #C8C8FF;
         opacity: 0.7;
@@ -381,6 +435,18 @@
         text-align: center;
     }
 
+    /* 成功提示框：绿色系，醒目且不刺眼 */
+    .success-tip {
+        padding: 8px 12px;
+        background: rgba(105, 219, 124, 0.15);
+        border: 1px solid rgba(105, 219, 124, 0.3);
+        border-radius: 8px;
+        color: #69db7c;
+        font-size: 12px;
+        margin-bottom: 20px;
+        text-align: center;
+    }
+
     /* 表单项容器：统一间距和宽度 */
     .form-item {
         margin-bottom: 20px;
@@ -397,7 +463,7 @@
         font-weight: 500;
     }
 
-    /* 登录输入框：深色背景+浅色系边框，聚焦时有高亮效果 */
+    /* 注册输入框：深色背景+浅色系边框，聚焦时有高亮效果 */
     .login-input {
         width: 100%;
         padding: 14px 15px;
@@ -428,7 +494,7 @@
         cursor: not-allowed;
     }
 
-    /* 登录按钮：渐变背景+hover/active效果，禁用态降透明度 */
+    /* 注册按钮：渐变背景+hover/active效果，禁用态降透明度 */
     .login-btn {
         width: 100%;
         padding: 14px 0;
@@ -470,7 +536,7 @@
         color: rgba(226,226,248,0.8);
     }
 
-    /* 底部注册链接容器：居中展示 */
+    /* 底部登录链接容器：居中展示 */
     .login-footer {
         display: flex;
         justify-content: center;
@@ -485,7 +551,7 @@
         font-size: 14px;
     }
 
-    /* 注册链接样式：hover变色+下划线 */
+    /* 登录链接样式：hover变色+下划线 */
     .footer-link {
         color: #C8C8FF;
         font-size: 14px;

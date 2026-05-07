@@ -6,9 +6,11 @@
  * @author SongYuChen
  * @version 1.0.0
  */
+
 import { createRouter, createWebHistory } from 'vue-router';
 import Aetheris from '@/views/Aetheris.vue';
 import Login from '@/views/Login.vue';
+import Register from '@/views/Register.vue'; // 【新增】导入注册页
 
 const routes = [
   // 核心：根路径指向3D首页
@@ -22,6 +24,12 @@ const routes = [
     path: '/login',
     name: 'Login',
     component: Login
+  },
+  // 【新增】注册页路径
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register
   },
   // 404重定向到首页（不是登录页）
   {
