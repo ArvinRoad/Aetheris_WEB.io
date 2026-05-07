@@ -57,7 +57,6 @@
                             v-model="password"
                             :disabled="isLoading"
                             @input="clearError"
-                            @blur="checkPasswordOnBlur"
                         />
                     </div>
                     
@@ -188,17 +187,24 @@
             clearError(); // 清空历史错误提示
 
             // 调用后端注册接口
-            await registerApi({
+            const res = await registerApi({
                 username: username.value.trim(),
                 email: email.value.trim(),
                 password: password.value.trim()
             });
 
+            // 注册成功自动登录并跳转到论坛首页
+            if (res && res.data && res.data.code === 200) {
+                const token = res.data.data?.token || '';
+                if (token) localStorage.setItem('token', token);
+            }
+
             // 只要走到这里，就说明注册成功（数据已写入数据库）
-            successMsg.value = '注册成功！正在跳转到登录页...';
+            successMsg.value = '注册成功！正在进入论坛...';
             setTimeout(async () => {
-                await router.push('/login').catch(err => {
-                    console.warn('登录页跳转失败：', err);
+                // ✅ 注册成功 → 跳论坛首页 /forum
+                await router.push('/forum').catch(err => {
+                    console.warn('跳转失败：', err);
                     errorMsg.value = '注册成功，但页面跳转失败，请手动刷新';
                 });
             }, 1500);
@@ -211,10 +217,10 @@
             } 
             // 如果是200状态码但被拦截器抛出错误，说明是业务code不匹配，实际注册成功
             else if (err.response?.status === 200) {
-                successMsg.value = '注册成功！正在跳转到登录页...';
+                successMsg.value = '注册成功！正在进入论坛...';
                 setTimeout(async () => {
-                    await router.push('/login').catch(err => {
-                        console.warn('登录页跳转失败：', err);
+                    await router.push('/forum').catch(err => {
+                        console.warn('跳转失败：', err);
                         errorMsg.value = '注册成功，但页面跳转失败，请手动刷新';
                     });
                 }, 1500);
@@ -269,7 +275,7 @@
 
     /**
      * 页面卸载钩子：清理所有资源，避免内存泄漏
-     * 1. 清空响应式数据 2. 恢复滚动 3. 移除事件监听 4. 清理DOM事件残留
+     * 1. 清空敏感数据 2. 恢复滚动 3. 移除事件监听 4. 清理DOM事件残留
      */
     onUnmounted(() => {
         try {

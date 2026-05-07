@@ -150,12 +150,12 @@
             });
 
             if (res && res.data && res.data.code === 200) {
-                // 登录成功：存储Token + 跳转到首页
+                // 登录成功：存储Token + 跳转到论坛首页 /forum
                 const token = res.data.data?.token || '';
                 if (token) localStorage.setItem('token', token);
                 
                 // 路由跳转异常捕获，避免跳转失败导致流程中断
-                await router.push('/').catch(err => {
+                await router.push('/forum').catch(err => {
                     console.warn('首页跳转失败：', err);
                     errorMsg.value = '登录成功，但页面跳转失败，请手动刷新';
                 });
@@ -217,7 +217,7 @@
 
     /**
      * 页面卸载钩子：清理所有资源，避免内存泄漏
-     * 1. 清空响应式数据 2. 恢复滚动 3. 移除事件监听 4. 清理DOM事件残留
+     * 1. 清空敏感数据 2. 恢复滚动 3. 移除事件监听 4. 清理DOM事件残留
      */
     onUnmounted(() => {
         try {
