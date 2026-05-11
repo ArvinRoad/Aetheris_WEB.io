@@ -74,7 +74,7 @@
     };
 
     // ========== 业务逻辑：用户信息与退出登录 ==========
-    // 获取当前登录用户信息（核心修改：移除自动跳转）
+    // 获取当前登录用户信息
     const getUserInfo = async () => {
         // 先校验 Token 是否存在
         const token = localStorage.getItem('token');

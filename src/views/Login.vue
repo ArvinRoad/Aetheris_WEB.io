@@ -1,18 +1,25 @@
 /**
  * 项目: 渊枢 (Aetheris)
  * 功能: 登录页
- * 包含: 账号密码登录、表单校验、注册跳转、登录态存储、弹窗提示
+ * 包含: 账号密码登录、表单校验、注册跳转、登录态存储、弹窗提示、登录成功3D过场动画
  * 对接: Rust Axum 后端 /login 接口
  * @author SongYuChen
- * @version 1.0.0
+ * @version 1.0.2
+ * @date 2026-05-10
+ * @update: 将品牌图标升级为标准梅塔特隆立方体神圣几何图形
  */
 
 <template>
     <div class="fullscreen-lock">
-        <div class="login-container" ref="loginContainerRef">
+        <!-- 登录内容容器：登录成功后立即隐藏 -->
+        <div 
+            class="login-container" 
+            ref="loginContainerRef"
+            v-show="showLoginContent"
+        >
             <div class="login-bg"></div>
             <div class="login-panel">
-                <!-- 动态六边形品牌图标（带旋转动画） -->
+                <!-- 【升级】标准梅塔特隆立方体品牌图标（带旋转动画） -->
                 <div class="metatron-icon"></div>
                 <h1 class="login-title">渊枢 · Aetheris</h1>
                 <p class="login-subtitle">Enter the Aether Realm</p>
@@ -64,6 +71,12 @@
                 </div>
             </div>
         </div>
+
+        <!-- 登录成功全屏3D过场动画：始终在最上层 -->
+        <LoginAnimation 
+            ref="loginAnimation"
+            @animation-complete="handleAnimationComplete"
+        />
     </div>
 </template>
 
@@ -72,17 +85,21 @@
     import { ref, onMounted, onUnmounted, onErrorCaptured } from 'vue';
     import { useRouter } from 'vue-router';
     import * as authModule from '@/api/auth';
-    
+    // 导入登录成功过场动画组件
+    import LoginAnimation from '../components/LoginAnimation.vue';
+
     // 异常处理：接口不存在时使用空实现，防止组件崩溃
     const loginApi = authModule.loginApi || (() => Promise.reject({ msg: '登录接口模块未配置' }));
 
     // 响应式数据定义
     const router = useRouter();           // 路由实例
     const loginContainerRef = ref(null);  // 登录容器DOM引用
+    const loginAnimation = ref(null);     // 动画组件引用
     const username = ref('');             // 账号输入值
     const password = ref('');             // 密码输入值
     const isLoading = ref(false);         // 登录请求加载状态
     const errorMsg = ref('');             // 错误提示信息
+    const showLoginContent = ref(true);   // 控制登录内容显示/隐藏
 
     /**
      * 全局错误捕获：过滤组件内常见错误，避免控制台爆红
@@ -120,6 +137,8 @@
     /**
      * 登录核心逻辑：表单校验 → 接口调用 → 结果处理
      * 全量异常捕获，确保任何错误都不会导致页面崩溃
+     * 仅登录成功后触发动画，所有失败情况均不触发
+     * 登录成功立即隐藏所有登录内容，只显示动画
      */
     const handleLogin = async () => {
         // 1. 表单空值校验
@@ -150,21 +169,22 @@
             });
 
             if (res && res.data && res.data.code === 200) {
-                // 登录成功：存储Token + 跳转到论坛首页 /forum
+                // 登录成功：存储Token
                 const token = res.data.data?.token || '';
                 if (token) localStorage.setItem('token', token);
                 
-                // 路由跳转异常捕获，避免跳转失败导致流程中断
-                await router.push('/forum').catch(err => {
-                    console.warn('首页跳转失败：', err);
-                    errorMsg.value = '登录成功，但页面跳转失败，请手动刷新';
-                });
+                // 关键修复：立即隐藏所有登录内容，只保留动画层
+                showLoginContent.value = false;
+                
+                // 播放3D过场动画
+                loginAnimation.value.startAnimation();
             } else {
-                // 登录失败：显示后端返回的错误信息
+                // ❌ 登录失败：只显示错误信息，不触发动画
                 errorMsg.value = res?.data?.message || '登录失败，请检查账号密码';
             }
         } catch (err) {
             console.error('登录接口调用异常：', err);
+            // ❌ 所有异常情况均不触发动画
             if (err.response?.status === 401) {
                 errorMsg.value = '账号或密码错误，请重新输入';
             } 
@@ -185,11 +205,24 @@
     };
 
     /**
-     *  注册跳转逻辑：跳转到注册页
+     * 动画完成回调：跳转到论坛首页 /forum
+     */
+    const handleAnimationComplete = () => {
+        // 路由跳转异常捕获，避免跳转失败导致流程中断
+        router.push('/forum').catch(err => {
+            console.warn('论坛首页跳转失败：', err);
+            errorMsg.value = '登录成功，但页面跳转失败，请手动刷新';
+            // 跳转失败时恢复登录内容显示
+            showLoginContent.value = true;
+        });
+    };
+
+    /**
+     * 注册跳转逻辑：跳转到注册页
      */
     const goRegister = () => {
         try {
-            router.push('/register'); // 【修改】从弹窗改成路由跳转
+            router.push('/register');
         } catch (err) {
             console.warn('注册页跳转失败：', err);
         }
@@ -217,7 +250,7 @@
 
     /**
      * 页面卸载钩子：清理所有资源，避免内存泄漏
-     * 1. 清空敏感数据 2. 恢复滚动 3. 移除事件监听 4. 清理DOM事件残留
+     * 1. 清空响应式数据 2. 恢复滚动 3. 移除事件监听 4. 清理DOM事件残留
      */
     onUnmounted(() => {
         try {
@@ -337,15 +370,15 @@
         pointer-events: auto !important;
     }
 
-    /* 六边形品牌图标：带线性渐变+旋转动画 */
+    /* 标准梅塔特隆立方体品牌图标：神圣几何图形 */
     .metatron-icon {
         width: 60px;
         height: 60px;
         margin: 0 auto 20px;
         background: linear-gradient(45deg, #E2E2F8, #C8C8FF);
-        /* SVG遮罩实现六边形形状 */
-        -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 5 L85 25 L85 75 L50 95 L15 75 L15 25 Z" fill="white"/></svg>') center/100% no-repeat;
-        mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><path d="M50 5 L85 25 L85 75 L50 95 L15 75 L15 25 Z" fill="white"/></svg>') center/100% no-repeat;
+        /* 标准梅塔特隆立方体SVG遮罩 */
+        -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500"><path d="M250 20 L433 125 L433 375 L250 480 L67 375 L67 125 Z M250 80 L375 150 L375 350 L250 420 L125 350 L125 150 Z M250 140 L317 175 L317 325 L250 360 L183 325 L183 175 Z M250 200 L283 217 L283 283 L250 300 L217 283 L217 217 Z M125 150 L250 80 L375 150 L375 350 L250 420 L125 350 Z M67 125 L250 20 L433 125 L433 375 L250 480 L67 375 Z M125 150 L67 125 L67 375 L125 350 L375 350 L433 375 L433 125 L375 150 Z M183 175 L125 150 L125 350 L183 325 L317 325 L375 350 L375 150 L317 175 Z M217 217 L183 175 L183 325 L217 283 L283 283 L317 325 L317 175 L283 217 Z"/></svg>') center/100% no-repeat;
+        mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500"><path d="M250 20 L433 125 L433 375 L250 480 L67 375 L67 125 Z M250 80 L375 150 L375 350 L250 420 L125 350 L125 150 Z M250 140 L317 175 L317 325 L250 360 L183 325 L183 175 Z M250 200 L283 217 L283 283 L250 300 L217 283 L217 217 Z M125 150 L250 80 L375 150 L375 350 L250 420 L125 350 Z M67 125 L250 20 L433 125 L433 375 L250 480 L67 375 Z M125 150 L67 125 L67 375 L125 350 L375 350 L433 375 L433 125 L375 150 Z M183 175 L125 150 L125 350 L183 325 L317 325 L375 350 L375 150 L317 175 Z M217 217 L183 175 L183 325 L217 283 L283 283 L317 325 L317 175 L283 217 Z"/></svg>') center/100% no-repeat;
         animation: rotate 15s linear infinite; /* 匀速旋转动画 */
     }
 

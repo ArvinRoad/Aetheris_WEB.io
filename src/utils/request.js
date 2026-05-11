@@ -9,7 +9,7 @@ import axios from 'axios'
 
 // 创建 axios 实例，对接 Rust 后端
 const request = axios.create({
-    baseURL: 'http://localhost:3000', // 你的 Rust 后端地址（端口不对可改）
+    baseURL: 'http://localhost:3000', // 后端地址（端口不对可改）
     timeout: 10000,
     headers: {
         'Content-Type': 'application/json;charset=utf-8'

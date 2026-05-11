@@ -5,7 +5,8 @@
  * 风格: 高端神秘 / 暗宇宙虚空 / 磨砂玻璃 / 极简艺术留白
  * 参考布局: dishisancengart.com
  * @author SongYuChen
- * @version 1.0.0
+ * @version 1.0.6
+ * @update: 删除PC端未登录状态下的登录/注册按钮
  */
 
 <template>
@@ -13,7 +14,7 @@
     <!-- 全局深空背景 -->
     <div class="forum-bg"></div>
 
-    <!-- 顶部固定导航栏（修复了 :class 语法） -->
+    <!-- 顶部固定导航栏 -->
     <header :class="headerClasses">
       <div class="nav-container">
         <!-- Logo + 项目名称 -->
@@ -24,20 +25,58 @@
 
         <!-- PC端导航菜单 -->
         <nav class="nav-menu pc-menu">
-          <a href="/" class="menu-item active">首页</a>
-          <a href="/forum" class="menu-item">以太论坛</a>
-          <a href="/academy" class="menu-item">学术回廊</a>
-          <a href="/about" class="menu-item">关于渊枢</a>
+          <router-link to="/" class="menu-item">首页</router-link>
+          <router-link to="/forum" class="menu-item active">以太论坛</router-link>
+          <router-link to="/academy" class="menu-item">学术回廊</router-link>
+          <router-link to="/about" class="menu-item">关于渊枢</router-link>
         </nav>
 
-        <!-- 右侧登录/注册 / 退出登录 -->
+        <!-- PC端右侧用户区域：仅已登录时显示 -->
         <div class="nav-action pc-action">
+          <!-- ✅ 删除：未登录状态下的登录/注册按钮 -->
+          
+          <!-- 已登录状态：显示用户头像+悬停下拉菜单 -->
           <template v-if="isLoggedIn">
-            <a class="action-link" @click="logout">退出登录</a>
-          </template>
-          <template v-else>
-            <a href="/login" class="action-link">登录</a>
-            <a href="/register" class="action-link register-btn">创建账号</a>
+            <div 
+              class="user-menu-container"
+              @mouseenter="handleUserMenuEnter"
+              @mouseleave="handleUserMenuLeave"
+            >
+              <!-- 用户头像按钮 -->
+              <button class="user-avatar-btn">
+                <div class="user-avatar">
+                  <!-- 默认头像：小尺寸梅塔特隆立方体 -->
+                  <div class="metatron-small"></div>
+                </div>
+              </button>
+
+              <!-- 下拉菜单：鼠标悬停显示 -->
+              <div 
+                class="user-dropdown-menu"
+                v-show="showUserMenu"
+                @click="showUserMenu = false"
+              >
+                <div class="dropdown-item">
+                  <router-link to="/profile" class="dropdown-link">
+                    <span class="icon">👤</span>
+                    <span>个人中心</span>
+                  </router-link>
+                </div>
+                <div class="dropdown-item">
+                  <router-link to="/settings" class="dropdown-link">
+                    <span class="icon">⚙️</span>
+                    <span>设置</span>
+                  </router-link>
+                </div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item">
+                  <button class="dropdown-btn logout-btn" @click="logout">
+                    <span class="icon">🚪</span>
+                    <span>退出登录</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </template>
         </div>
 
@@ -55,18 +94,27 @@
     <!-- 移动端侧边菜单 -->
     <div class="mobile-menu" :class="{ show: showMobileMenu }">
       <div class="mobile-menu-inner">
-        <a href="/" class="mobile-item active" @click="toggleMobileMenu">首页</a>
-        <a href="/forum" class="mobile-item" @click="toggleMobileMenu">以太论坛</a>
-        <a href="/academy" class="mobile-item" @click="toggleMobileMenu">学术回廊</a>
-        <a href="/about" class="mobile-item" @click="toggleMobileMenu">关于渊枢</a>
-        <div class="mobile-divider"></div>
+        <router-link to="/" class="mobile-item" @click="toggleMobileMenu">首页</router-link>
+        <router-link to="/forum" class="mobile-item active" @click="toggleMobileMenu">以太论坛</router-link>
+        <router-link to="/academy" class="mobile-item" @click="toggleMobileMenu">学术回廊</router-link>
+        <router-link to="/about" class="mobile-item" @click="toggleMobileMenu">关于渊枢</router-link>
         
+        <!-- 移动端完整用户模块（与PC端完全一致） -->
         <template v-if="isLoggedIn">
-          <a class="mobile-item" @click="logout">退出登录</a>
-        </template>
-        <template v-else>
-          <a href="/login" class="mobile-item" @click="toggleMobileMenu">登录</a>
-          <a href="/register" class="mobile-item" @click="toggleMobileMenu">创建以太账号</a>
+          <div class="mobile-divider"></div>
+          <router-link to="/profile" class="mobile-item" @click="toggleMobileMenu">
+            <span class="mobile-icon">👤</span>
+            <span>个人中心</span>
+          </router-link>
+          <router-link to="/settings" class="mobile-item" @click="toggleMobileMenu">
+            <span class="mobile-icon">⚙️</span>
+            <span>设置</span>
+          </router-link>
+          <div class="mobile-divider"></div>
+          <a class="mobile-item logout-item" @click="logout">
+            <span class="mobile-icon">🚪</span>
+            <span>退出登录</span>
+          </a>
         </template>
       </div>
     </div>
@@ -179,7 +227,7 @@
     <footer class="forum-footer">
       <div class="footer-inner">
         <p class="footer-slogan">Enter the Aether Realm · 踏入以太虚空</p>
-        <p class="footer-copyright">© 2026 渊枢 Aetheris 私有学术思想交流平台</p>
+        <p class="footer-copyright">© 2026 渊枢 Aetheris 学术思想交流平台</p>
       </div>
     </footer>
   </div>
@@ -197,6 +245,10 @@ const showMobileMenu = ref(false);
 const isScrolled = ref(false);
 // 登录状态
 const isLoggedIn = ref(false);
+// 用户下拉菜单显示状态
+const showUserMenu = ref(false);
+// 下拉菜单隐藏定时器
+let hideMenuTimer = null;
 
 // 检查登录状态
 const checkLoginStatus = () => {
@@ -208,7 +260,23 @@ const checkLoginStatus = () => {
 const logout = () => {
   localStorage.removeItem('token');
   isLoggedIn.value = false;
+  showUserMenu.value = false; // 关闭下拉菜单
+  clearTimeout(hideMenuTimer); // 清除定时器
+  toggleMobileMenu(); // 关闭移动端菜单
   router.push('/');
+};
+
+// 用户菜单鼠标进入事件
+const handleUserMenuEnter = () => {
+  clearTimeout(hideMenuTimer); // 清除之前的隐藏定时器
+  showUserMenu.value = true;
+};
+
+// 用户菜单鼠标离开事件
+const handleUserMenuLeave = () => {
+  hideMenuTimer = setTimeout(() => {
+    showUserMenu.value = false;
+  }, 200);
 };
 
 // 导航栏类名（用计算属性消除 TS 误报）
@@ -234,6 +302,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('scroll', handleScroll);
+  clearTimeout(hideMenuTimer); // 组件卸载时清除定时器
 });
 </script>
 
@@ -274,9 +343,10 @@ onUnmounted(() => {
   left: 0;
   width: 100%;
   padding: 18px 0;
-  z-index: 999;
+  z-index: 9999;
   transition: all 0.4s ease;
   background: transparent;
+  min-height: 72px;
 }
 
 /* 滚动后导航磨砂加深 */
@@ -285,7 +355,6 @@ onUnmounted(() => {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid rgba(226,226,248,0.08);
-  padding: 15px 0;
 }
 
 .nav-container {
@@ -346,29 +415,119 @@ onUnmounted(() => {
   gap: 20px;
 }
 
-.action-link {
-  color: rgba(226,226,248,0.75);
-  font-size: 15px;
-  text-decoration: none;
-  transition: color 0.3s ease;
+/* 用户菜单相关样式 */
+.user-menu-container {
+  position: relative;
+  padding: 8px 0;
+}
+
+.user-avatar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(16, 16, 28, 0.85);
+  border: 1px solid rgba(226, 226, 248, 0.2);
   cursor: pointer;
-}
-
-.action-link:hover {
-  color: #E2E2F8;
-}
-
-.register-btn {
-  padding: 7px 16px;
-  border: 1px solid rgba(200,200,255,0.25);
-  border-radius: 6px;
-  color: #C8C8FF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.3s ease;
+  padding: 0;
 }
 
-.register-btn:hover {
-  background: rgba(200,200,255,0.08);
-  border-color: rgba(200,200,255,0.4);
+.user-avatar-btn:hover {
+  border-color: rgba(200, 200, 255, 0.5);
+  box-shadow: 0 0 8px rgba(200, 200, 255, 0.1);
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 小尺寸梅塔特隆立方体图标 */
+.metatron-small {
+  width: 20px;
+  height: 20px;
+  background: linear-gradient(45deg, #E2E2F8, #C8C8FF);
+  -webkit-mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500"><path d="M250 20 L433 125 L433 375 L250 480 L67 375 L67 125 Z M250 80 L375 150 L375 350 L250 420 L125 350 L125 150 Z M250 140 L317 175 L317 325 L250 360 L183 325 L183 175 Z M250 200 L283 217 L283 283 L250 300 L217 283 L217 217 Z"/></svg>') center/100% no-repeat;
+  mask: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500"><path d="M250 20 L433 125 L433 375 L250 480 L67 375 L67 125 Z M250 80 L375 150 L375 350 L250 420 L125 350 L125 150 Z M250 140 L317 175 L317 325 L250 360 L183 325 L183 175 Z M250 200 L283 217 L283 283 L250 300 L217 283 L217 217 Z"/></svg>') center/100% no-repeat;
+}
+
+/* 下拉菜单 */
+.user-dropdown-menu {
+  position: absolute;
+  top: calc(100% - 1px);
+  right: 0;
+  min-width: 180px;
+  background: rgba(16, 16, 28, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 226, 248, 0.15);
+  border-radius: 8px;
+  padding: 8px 0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  z-index: 10000;
+  animation: dropdownFadeIn 0.2s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dropdown-item {
+  width: 100%;
+}
+
+.dropdown-link, .dropdown-btn {
+  width: 100%;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #E2E2F8;
+  font-size: 14px;
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.dropdown-link:hover, .dropdown-btn:hover {
+  background: rgba(226, 226, 248, 0.1);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: rgba(226, 226, 248, 0.1);
+  margin: 6px 0;
+}
+
+.logout-btn {
+  color: #ff6b6b;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
 }
 
 /* 汉堡按钮 默认PC隐藏 */
@@ -384,7 +543,7 @@ onUnmounted(() => {
   height: 2px;
   background: #E2E2F8;
   border-radius: 1px;
-  transition: 0.3s;
+  transition: 0.3;
 }
 
 /* 移动端遮罩 */
@@ -395,7 +554,7 @@ onUnmounted(() => {
   width: 100vw;
   height: 100vh;
   background: rgba(0,0,0,0.55);
-  z-index: 1000;
+  z-index: 10001;
 }
 
 /* 移动端侧边菜单 */
@@ -409,7 +568,7 @@ onUnmounted(() => {
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-left: 1px solid rgba(226,226,248,0.1);
-  z-index: 1001;
+  z-index: 10002;
   transform: translateX(100%);
   transition: transform 0.4s ease;
 }
@@ -429,8 +588,11 @@ onUnmounted(() => {
   color: rgba(226,226,248,0.8);
   font-size: 16px;
   text-decoration: none;
-  transition: color 0.3s;
+  transition: color 0.3;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .mobile-item.active {
@@ -441,6 +603,18 @@ onUnmounted(() => {
   height: 1px;
   background: rgba(226,226,248,0.1);
   margin: 10px 0;
+}
+
+/* 移动端图标样式 */
+.mobile-icon {
+  font-size: 18px;
+  width: 22px;
+  text-align: center;
+}
+
+/* 移动端退出登录红色样式 */
+.logout-item {
+  color: #ff6b6b;
 }
 
 /* 英雄首屏 */
